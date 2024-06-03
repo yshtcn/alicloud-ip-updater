@@ -10,11 +10,8 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
-
-# Define environment variable
-ENV NAME World
+# Copy the sample config file into the image
+COPY config.sample.json /app/config.sample.json
 
 # Run update_aliyun.py when the container launches
 CMD ["python", "update_aliyun.py"]
