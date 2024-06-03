@@ -129,8 +129,8 @@ def load_ip_records(ip_record_file):
 def main():
     try:
         # 加载配置文件
-        config_path = os.environ.get('CONFIG_PATH', '/config/config.json')
-        sample_config_path = os.environ.get('SAMPLE_CONFIG_PATH', '/config/config.sample.json')
+        config_path = os.environ.get('CONFIG_PATH', '/app/config/config.json')
+        sample_config_path = os.environ.get('SAMPLE_CONFIG_PATH', '/app/config.sample.json')
         config = load_config(config_path, sample_config_path)
         
         ACCESS_KEY_ID = config['ACCESS_KEY_ID']
@@ -141,7 +141,7 @@ def main():
         GETIP_URLS = config['GETIP_URLS']
         PORTS = config['PORTS']
         PRIORITY = config.get('PRIORITY', 1)
-        IP_RECORD_FILE = config.get('IP_RECORD_FILE', '/logs/ip_records.json')
+        IP_RECORD_FILE = config.get('IP_RECORD_FILE', '/app/config/' + config.get('IP_RECORD_FILE', 'ip_records.json'))
         INTERVAL_SECONDS = config.get('INTERVAL_SECONDS', 3600)
         
         client = AcsClient(ACCESS_KEY_ID, ACCESS_KEY_SECRET, REGION_ID)
