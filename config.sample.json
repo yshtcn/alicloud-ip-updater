@@ -1,0 +1,18 @@
+{
+    "ACCESS_KEY_ID": "your_access_key_id",
+    "ACCESS_KEY_SECRET": "your_access_key_secret",
+    "REGION_ID": "your_region_id",
+    "SECURITY_GROUP_ID": "your_security_group_id",
+    "TAG": "your_tag",
+    "GETIP_URLS": [
+        "https://getip.ysht.me"
+    ],
+    "PORTS": [
+        {"port": "53", "protocol": "udp"},
+        {"port": "6053", "protocol": "tcp"},
+        {"port": "1-65535", "protocol": "tcp"}
+    ],
+    "PRIORITY": 1,
+    "IP_RECORD_FILE": "ip_records.json",
+    "INTERVAL_SECONDS": 3600
+}
