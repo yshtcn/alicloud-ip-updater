@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY config.sample.json /app/config.sample.json
 
 # Run update_aliyun.py when the container launches
-CMD ["python", "update_aliyun.py"]
+CMD ["python", "AliCloudIPUpdater.py"]
