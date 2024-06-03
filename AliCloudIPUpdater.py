@@ -3,28 +3,33 @@ import json
 import requests
 import time
 import shutil
+import logging
 from requests.exceptions import RequestException
 from aliyunsdkcore.client import AcsClient
 from aliyunsdkcore.acs_exception.exceptions import ClientException, ServerException
 from aliyunsdkecs.request.v20140526 import DescribeSecurityGroupAttributeRequest, AuthorizeSecurityGroupRequest, RevokeSecurityGroupRequest
 
+# 设置日志记录
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger()
+
 # 从配置文件加载配置信息
 def load_config(config_file, sample_config_file):
     if not os.path.exists(config_file):
-        print(f"配置文件 {config_file} 不存在。")
-        print(f"将从样例配置文件 {sample_config_file} 复制一份。")
+        logger.error(f"配置文件 {config_file} 不存在。")
+        logger.info(f"将从样例配置文件 {sample_config_file} 复制一份。")
         shutil.copy(sample_config_file, config_file)
-        print(f"请在 {config_file} 中配置您的设置。")
+        logger.info(f"请在 {config_file} 中配置您的设置。")
         raise FileNotFoundError(f"配置文件 {config_file} 不存在。")
     try:
         with open(config_file, 'r') as file:
             config = json.load(file)
         return config
     except FileNotFoundError:
-        print(f"配置文件 {config_file} 未找到。")
+        logger.error(f"配置文件 {config_file} 未找到。")
         raise
     except json.JSONDecodeError:
-        print(f"配置文件 {config_file} 解析错误。")
+        logger.error(f"配置文件 {config_file} 解析错误。")
         raise
 
 # 获取IP地址
@@ -35,7 +40,7 @@ def get_ip_from_service(url):
         ip = response.text.strip()
         return ip
     except RequestException as e:
-        print(f"无法从 {url} 获取IP地址: {e}")
+        logger.error(f"无法从 {url} 获取IP地址: {e}")
         raise
 
 # 获取当前安全组的规则
@@ -49,7 +54,7 @@ def get_security_group_rules(client, security_group_id):
         rules = json.loads(response)
         return rules.get('Permissions', {}).get('Permission', [])
     except (ClientException, ServerException) as e:
-        print(f"无法获取安全组规则: {e}")
+        logger.error(f"无法获取安全组规则: {e}")
         raise
 
 # 删除带有标记的旧规则
@@ -67,7 +72,7 @@ def delete_old_rules(client, security_group_id, tag):
                 request.set_NicType(rule['NicType'])
                 client.do_action_with_exception(request)
     except (ClientException, ServerException) as e:
-        print(f"无法删除旧的安全组规则: {e}")
+        logger.error(f"无法删除旧的安全组规则: {e}")
         raise
 
 # 更新安全组白名单
@@ -91,9 +96,9 @@ def update_security_group_white_list(client, security_group_id, ip, ports, tag, 
             request.set_Priority(priority)
 
             response = client.do_action_with_exception(request)
-            print(str(response, encoding='utf-8'))
+            logger.info(str(response, encoding='utf-8'))
     except (ClientException, ServerException) as e:
-        print(f"无法更新安全组白名单: {e}")
+        logger.error(f"无法更新安全组白名单: {e}")
         raise
 
 # 记录IP地址到本地文件
@@ -102,7 +107,7 @@ def record_ip(ip_record_file, ip_records):
         with open(ip_record_file, 'w') as file:
             json.dump(ip_records, file)
     except IOError as e:
-        print(f"无法写入IP记录文件 {ip_record_file}: {e}")
+        logger.error(f"无法写入IP记录文件 {ip_record_file}: {e}")
         raise
 
 # 读取本地记录的IP地址
@@ -115,17 +120,17 @@ def load_ip_records(ip_record_file):
         else:
             return {}
     except IOError as e:
-        print(f"无法读取IP记录文件 {ip_record_file}: {e}")
+        logger.error(f"无法读取IP记录文件 {ip_record_file}: {e}")
         raise
     except json.JSONDecodeError as e:
-        print(f"IP记录文件 {ip_record_file} 解析错误: {e}")
+        logger.error(f"IP记录文件 {ip_record_file} 解析错误: {e}")
         raise
 
 def main():
     try:
         # 加载配置文件
-        config_path = os.environ.get('CONFIG_PATH', 'config.json')
-        sample_config_path = os.environ.get('SAMPLE_CONFIG_PATH', 'config.sample.json')
+        config_path = os.environ.get('CONFIG_PATH', '/config/config.json')
+        sample_config_path = os.environ.get('SAMPLE_CONFIG_PATH', '/config/config.sample.json')
         config = load_config(config_path, sample_config_path)
         
         ACCESS_KEY_ID = config['ACCESS_KEY_ID']
@@ -136,30 +141,45 @@ def main():
         GETIP_URLS = config['GETIP_URLS']
         PORTS = config['PORTS']
         PRIORITY = config.get('PRIORITY', 1)
-        IP_RECORD_FILE = config.get('IP_RECORD_FILE', 'ip_records.json')
+        IP_RECORD_FILE = config.get('IP_RECORD_FILE', '/logs/ip_records.json')
         INTERVAL_SECONDS = config.get('INTERVAL_SECONDS', 3600)
         
         client = AcsClient(ACCESS_KEY_ID, ACCESS_KEY_SECRET, REGION_ID)
+
+        # 忽略现有的 IP 记录文件，强制更新一次规则
+        new_ip_records = {}
+
+        # 获取并删除旧规则
+        delete_old_rules(client, SECURITY_GROUP_ID, TAG)
+        
+        # 获取新的IP地址并更新安全组白名单
+        for url in GETIP_URLS:
+            ip = get_ip_from_service(url)
+            logger.info(f"IP from {url}: {ip}")
+            new_ip_records[url] = ip
+
+            # 更新安全组白名单
+            update_security_group_white_list(client, SECURITY_GROUP_ID, ip, PORTS, TAG, PRIORITY)
+
+        # 记录新的IP地址到本地文件
+        record_ip(IP_RECORD_FILE, new_ip_records)
 
         while True:
             # 读取本地记录的IP地址
             ip_records = load_ip_records(IP_RECORD_FILE)
             new_ip_records = {}
 
-            # 获取并删除旧规则
-            delete_old_rules(client, SECURITY_GROUP_ID, TAG)
-            
             # 获取新的IP地址并更新安全组白名单
             for url in GETIP_URLS:
                 ip = get_ip_from_service(url)
-                print(f"IP from {url}: {ip}")
+                logger.info(f"IP from {url}: {ip}")
                 new_ip_records[url] = ip
 
                 if ip_records.get(url) != ip:
                     # 更新安全组白名单
                     update_security_group_white_list(client, SECURITY_GROUP_ID, ip, PORTS, TAG, PRIORITY)
                 else:
-                    print(f"IP from {url} has not changed, no update required.")
+                    logger.info(f"IP from {url} has not changed, no update required.")
 
             # 记录新的IP地址到本地文件
             record_ip(IP_RECORD_FILE, new_ip_records)
@@ -168,7 +188,7 @@ def main():
             time.sleep(INTERVAL_SECONDS)
 
     except Exception as e:
-        print(f"程序运行过程中出现错误: {e}")
+        logger.error(f"程序运行过程中出现错误: {e}")
 
 if __name__ == "__main__":
     main()
