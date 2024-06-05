@@ -13,6 +13,9 @@
         {"port": "1-65535", "protocol": "tcp"}
     ],
     "PRIORITY": 1,
-    "IP_RECORD_FILE": "ip_records.json",
-    "INTERVAL_SECONDS": 3600
+    "IP_RECORD_FILE": "./config/ip_records.json",
+    "INTERVAL_SECONDS": 3600,
+    "SERVER_CHAN_KEY": "your_server_chan_key",
+    "SERVER_CHAN_TITLE": "阿里云安全组白名单更新通知",
+    "SERVER_CHAN_MESSAGE": "已新增白名单，IP:{IP}，端口: {ports}\n\n注意:在本次更新前，已将系统内有相同tag的规则全部删除。需要手动修改的记录请避免使用同样的tag。"
 }
