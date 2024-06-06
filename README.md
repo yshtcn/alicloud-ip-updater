@@ -3,7 +3,7 @@
 
 ## 项目简介
 
-AliCloud IP Updater 是一个用于定期更新阿里云安全组白名单的工具。它可以从指定的URL获取当前IP地址，并将其添加到阿里云安全组中。程序还集成了Server酱API，用于在更新白名单和发生重大错误时发送通知。
+[AliCloudIPUpdater](https://github.com/yshtcn/alicloud-ip-updater)  是一个用于定期更新阿里云安全组白名单的工具。它可以从指定的URL获取当前IP地址，并将其添加到阿里云安全组中。程序还集成了Server酱API，用于在更新白名单和发生重大错误时发送通知。
 
 ## 功能
 
