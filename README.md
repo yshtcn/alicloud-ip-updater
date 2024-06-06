@@ -114,6 +114,9 @@ docker run -v /path/to/config:/app/config yshtcn/alicloud_ip_updater
 
 请检查您的Server酱Key是否正确配置，并且网络连接正常。
 
+## 特别说明
+
+本项目代码及其文档使用AI辅助编写实现创意，请您谨防相关风险。
 
 ## 许可证
 
